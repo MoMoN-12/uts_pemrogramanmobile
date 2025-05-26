@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
 
+void main() {
+  runApp(BioskopkuApp());
+}
+
 // --- MODELS ---
 enum SeatStatus { available, selected, occupied }
+
+class User {
+  final String username;
+  final String password;
+  final String name;
+  final String email;
+  final String phone;
+
+  const User({
+    required this.username,
+    required this.password,
+    required this.name,
+    required this.email,
+    required this.phone,
+  });
+}
 
 class Movie {
   final String id;
@@ -11,6 +31,12 @@ class Movie {
   final String genre;
   final String duration;
   final List<String> showtimes;
+  final double rating;
+  final int price;
+  final String ageRating;
+  final String director;
+  final List<String> cast;
+  final String theater;
 
   const Movie({
     required this.id,
@@ -20,6 +46,12 @@ class Movie {
     required this.genre,
     required this.duration,
     required this.showtimes,
+    required this.rating,
+    required this.price,
+    required this.ageRating,
+    required this.director,
+    required this.cast,
+    required this.theater,
   });
 }
 
@@ -27,106 +59,267 @@ class Seat {
   final String id;
   final String row;
   final int number;
-  SeatStatus status; // Now mutable outside of constructor for updates
+  SeatStatus status;
+  final int price;
+  final String type;
 
   Seat({
     required this.id,
     required this.row,
     required this.number,
     this.status = SeatStatus.available,
+    required this.price,
+    required this.type,
+  });
+}
+
+class PaymentMethod {
+  final String id;
+  final String name;
+  final IconData icon;
+  final String description;
+  final int fee;
+
+  const PaymentMethod({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.description,
+    required this.fee,
+  });
+}
+
+class BookingData {
+  final Movie movie;
+  final String showtime;
+  final String date;
+  final List<Seat> selectedSeats;
+  final int totalPrice;
+  final PaymentMethod? paymentMethod;
+  final String? bookingId;
+  final DateTime? paymentDate;
+
+  const BookingData({
+    required this.movie,
+    required this.showtime,
+    required this.date,
+    required this.selectedSeats,
+    required this.totalPrice,
+    this.paymentMethod,
+    this.bookingId,
+    this.paymentDate,
   });
 
-  // copyWith is still useful for creating new instances with changed properties
-  Seat copyWith({SeatStatus? status}) {
-    return Seat(
-      id: id,
-      row: row,
-      number: number,
-      status: status ?? this.status,
+  BookingData copyWith({
+    Movie? movie,
+    String? showtime,
+    String? date,
+    List<Seat>? selectedSeats,
+    int? totalPrice,
+    PaymentMethod? paymentMethod,
+    String? bookingId,
+    DateTime? paymentDate,
+  }) {
+    return BookingData(
+      movie: movie ?? this.movie,
+      showtime: showtime ?? this.showtime,
+      date: date ?? this.date,
+      selectedSeats: selectedSeats ?? this.selectedSeats,
+      totalPrice: totalPrice ?? this.totalPrice,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      bookingId: bookingId ?? this.bookingId,
+      paymentDate: paymentDate ?? this.paymentDate,
     );
   }
 }
 
-class User {
-  final String username;
-  final String password; // In a real app, never store plain passwords!
-
-  const User({required this.username, required this.password});
-}
-
-// --- GLOBAL DATA (for demonstration purposes) ---
+// --- GLOBAL DATA ---
 List<User> registeredUsers = [
-  const User(username: 'user1', password: 'password1'),
-  const User(username: 'admin', password: 'adminpassword'),
+  const User(
+    username: 'demo',
+    password: 'demo123',
+    name: 'Demo User',
+    email: 'demo@example.com',
+    phone: '+62812345678',
+  ),
+  const User(
+    username: 'user1',
+    password: 'password1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '+62812345679',
+  ),
+  const User(
+    username: 'admin',
+    password: 'admin123',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    phone: '+62812345680',
+  ),
 ];
 
-// This list will now hold the global state of all seats across the app.
-// We initialize it once and update it after bookings.
-List<Seat> globalSeats = [];
+List<Movie> movies = [
+  const Movie(
+    id: 'm1',
+    title: 'Avengers: Endgame',
+    posterUrl: 'https://via.placeholder.com/300x400/4A90E2/FFFFFF?text=Avengers',
+    description: 'Adrift in space with no food or water, Tony Stark sends a message to Pepper Potts as his oxygen supply starts to dwindle. Meanwhile, the remaining Avengers must figure out a way to bring back their vanquished allies for an epic showdown with Thanos.',
+    genre: 'Action',
+    duration: '181 min',
+    showtimes: ['12:00', '14:30', '17:00', '19:30', '22:00'],
+    rating: 8.4,
+    price: 35000,
+    ageRating: '13+',
+    director: 'Anthony Russo, Joe Russo',
+    cast: ['Robert Downey Jr.', 'Chris Evans', 'Mark Ruffalo', 'Chris Hemsworth'],
+    theater: 'Studio 1',
+  ),
+  const Movie(
+    id: 'm2',
+    title: 'Spider-Man: No Way Home',
+    posterUrl: 'https://via.placeholder.com/300x400/E74C3C/FFFFFF?text=Spider-Man',
+    description: 'With Spider-Man\'s identity now revealed, Peter asks Doctor Strange for help. When a spell goes wrong, dangerous foes from other worlds start to appear.',
+    genre: 'Action',
+    duration: '148 min',
+    showtimes: ['11:00', '13:30', '16:00', '18:30', '21:00'],
+    rating: 8.2,
+    price: 35000,
+    ageRating: '13+',
+    director: 'Jon Watts',
+    cast: ['Tom Holland', 'Zendaya', 'Benedict Cumberbatch', 'Jacob Batalon'],
+    theater: 'Studio 2',
+  ),
+  const Movie(
+    id: 'm3',
+    title: 'Dune: Part Two',
+    posterUrl: 'https://via.placeholder.com/300x400/F39C12/FFFFFF?text=Dune',
+    description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
+    genre: 'Sci-Fi',
+    duration: '166 min',
+    showtimes: ['10:00', '13:00', '16:00', '19:00'],
+    rating: 8.8,
+    price: 40000,
+    ageRating: '13+',
+    director: 'Denis Villeneuve',
+    cast: ['Timothée Chalamet', 'Zendaya', 'Rebecca Ferguson', 'Oscar Isaac'],
+    theater: 'Studio 3',
+  ),
+  const Movie(
+    id: 'm4',
+    title: 'The Batman',
+    posterUrl: 'https://via.placeholder.com/300x400/2C3E50/FFFFFF?text=Batman',
+    description: 'When the Riddler, a sadistic serial killer, begins murdering key political figures in Gotham, Batman is forced to investigate the city\'s hidden corruption.',
+    genre: 'Action',
+    duration: '176 min',
+    showtimes: ['13:00', '16:30', '20:00'],
+    rating: 7.8,
+    price: 35000,
+    ageRating: '17+',
+    director: 'Matt Reeves',
+    cast: ['Robert Pattinson', 'Zoë Kravitz', 'Paul Dano', 'Jeffrey Wright'],
+    theater: 'Studio 1',
+  ),
+  const Movie(
+    id: 'm5',
+    title: 'Turning Red',
+    posterUrl: 'https://via.placeholder.com/300x400/E67E22/FFFFFF?text=Turning+Red',
+    description: 'A 13-year-old girl named Meilin turns into a giant red panda whenever she gets too excited.',
+    genre: 'Animation',
+    duration: '100 min',
+    showtimes: ['10:30', '12:30', '14:30', '16:30'],
+    rating: 7.0,
+    price: 30000,
+    ageRating: 'SU',
+    director: 'Domee Shi',
+    cast: ['Rosalie Chiang', 'Sandra Oh', 'Ava Morse', 'Hyein Park'],
+    theater: 'Studio 4',
+  ),
+];
 
-// Function to initialize global seats
-void _initializeGlobalSeats() {
-  globalSeats.clear();
-  final int rows = 8;
-  final int cols = 10;
-  final List<String> seatRows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+List<PaymentMethod> paymentMethods = [
+  const PaymentMethod(
+    id: 'credit_card',
+    name: 'Kartu Kredit/Debit',
+    icon: Icons.credit_card,
+    description: 'Visa, Mastercard, JCB',
+    fee: 0,
+  ),
+  const PaymentMethod(
+    id: 'gopay',
+    name: 'GoPay',
+    icon: Icons.phone_android,
+    description: 'Bayar dengan GoPay',
+    fee: 0,
+  ),
+  const PaymentMethod(
+    id: 'ovo',
+    name: 'OVO',
+    icon: Icons.account_balance_wallet,
+    description: 'Bayar dengan OVO',
+    fee: 0,
+  ),
+  const PaymentMethod(
+    id: 'dana',
+    name: 'DANA',
+    icon: Icons.phone_android,
+    description: 'Bayar dengan DANA',
+    fee: 0,
+  ),
+  const PaymentMethod(
+    id: 'bank_transfer',
+    name: 'Transfer Bank',
+    icon: Icons.account_balance,
+    description: 'BCA, Mandiri, BNI, BRI',
+    fee: 2500,
+  ),
+];
 
-  for (int r = 0; r < rows; r++) {
-    for (int c = 1; c <= cols; c++) {
-      final String seatId = '${seatRows[r]}$c';
-      SeatStatus status = SeatStatus.available;
-      // Simulate some initially occupied seats
-      if ((r == 2 && c == 5) || (r == 3 && c == 3) || (r == 3 && c == 4) || (r == 5 && c == 8)) {
-        status = SeatStatus.occupied;
-      }
-      globalSeats.add(Seat(id: seatId, row: seatRows[r], number: c, status: status));
-    }
-  }
-}
+// Global state
+User? currentUser;
+BookingData? currentBooking;
+List<BookingData> bookingHistory = [];
 
-// --- MAIN APPLICATION ---
-void main() {
-  // Initialize global seats when the app starts
-  _initializeGlobalSeats();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+// --- MAIN APP ---
+class BioskopkuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bioskopku Satu File',
+      title: 'Bioskopku',
       theme: ThemeData(
-        primarySwatch: Colors.blueGrey,
+        primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blueGrey,
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           centerTitle: true,
+          elevation: 2,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueGrey,
+            backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
             textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ),
-        chipTheme: ChipThemeData(
-          selectedColor: Colors.blueGrey[700],
-          labelStyle: const TextStyle(color: Colors.black),
-          secondaryLabelStyle: const TextStyle(color: Colors.white),
+        cardTheme: CardTheme(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       home: const LoginScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
 // --- SCREENS ---
 
-// Screen 0: LoginScreen
+// 1. Login Screen
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -138,23 +331,43 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  void _login() {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Simulate network delay
+      await Future.delayed(const Duration(seconds: 1));
+
       final username = _usernameController.text;
       final password = _passwordController.text;
 
-      bool isAuthenticated = false;
-      for (var user in registeredUsers) {
-        if (user.username == username && user.password == password) {
-          isAuthenticated = true;
-          break;
-        }
-      }
+      final user = registeredUsers.firstWhere(
+            (u) => u.username == username && u.password == password,
+        orElse: () => const User(
+          username: '',
+          password: '',
+          name: '',
+          email: '',
+          phone: '',
+        ),
+      );
 
-      if (isAuthenticated) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (user.username.isNotEmpty) {
+        currentUser = user;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Selamat datang, $username!')),
+          SnackBar(
+            content: Text('Selamat datang, ${user.name}!'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MovieListScreen()),
@@ -170,84 +383,189 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _demoLogin() {
+    _usernameController.text = 'demo';
+    _passwordController.text = 'demo123';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bioskopku - Login'),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.movie_filter,
-                  size: 100,
-                  color: Colors.blueGrey,
-                ),
-                const SizedBox(height: 30),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF64B5F6),
+              Color(0xFF1976D2),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                          child: const Icon(
+                            Icons.movie_filter,
+                            size: 40,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Title
+                        const Text(
+                          'Bioskopku',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Masuk untuk memesan tiket film favorit Anda',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Username Field
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon: const Icon(Icons.person),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Username tidak boleh kosong';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Password Field
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Password tidak boleh kosong';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading
+                                ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                                : const Text(
+                              'Masuk',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Demo Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: _demoLogin,
+                            child: const Text(
+                              'Coba Demo',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Demo Accounts Info
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Akun Demo Tersedia:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'demo / demo123\nuser1 / password1\nadmin / admin123',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    prefixIcon: const Icon(Icons.person),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Username tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.lock),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 18),
                   ),
                 ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const UserListScreen()),
-                    );
-                  },
-                  child: const Text('Lihat Daftar Pengguna'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -263,154 +581,454 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// Screen 1: MovieListScreen
-class MovieListScreen extends StatelessWidget {
+// 2. Movie List Screen
+class MovieListScreen extends StatefulWidget {
   const MovieListScreen({super.key});
 
-  final List<Movie> movies = const [
-    Movie(
-      id: 'm1',
-      title: 'Avengers: Endgame',
-      posterUrl: 'https://cdn.marvel.com/content/1x/avengersendgame_lob_crd_05.jpg',
-      description: 'Adrift in space with no food or water, Tony Stark sends a message to Pepper Potts as his oxygen supply starts to dwindle. Meanwhile, the remaining Avengers -- Thor, Black Widow, Captain America and Bruce Banner -- must figure out a way to bring back their vanquished allies for an epic showdown with Thanos -- the evil demigod who decimated the planet and the universe.',
-      genre: 'Action, Sci-Fi',
-      duration: '3h 1min',
-      showtimes: ['12:00', '14:30', '17:00', '19:30', '22:00'],
-    ),
-    Movie(
-      id: 'm2',
-      title: 'Spider-Man: No Way Home',
-      posterUrl: 'https://m.media-amazon.com/images/M/MV5BZWMyYzMyYjktMTg1ZS00MTlkLTljYzItYmY4OTNkNjU2MGE1XkEyXkFqcGdeQXVyMTE0MzQwMDgy._V1_FMjpg_UX1000_.jpg',
-      description: 'With Spider-Man\'s identity now revealed, Peter asks Doctor Strange for help. When a spell goes wrong, dangerous foes from other worlds start to appear, forcing Peter to discover what it truly means to be Spider-Man.',
-      genre: 'Action, Adventure',
-      duration: '2h 28min',
-      showtimes: ['11:00', '13:30', '16:00', '18:30', '21:00'],
-    ),
-    Movie(
-      id: 'm3',
-      title: 'Dune: Part Two',
-      posterUrl: 'https://m.media-amazon.com/images/M/MV5BMzY3NzZlM2EtNWY3MS00NmQ1LWFmNDctZDBlNWE4MzA0NWI0XkEyXkFqcGdeQXVyMTkxNjUyNQ@@._V1_.jpg',
-      description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
-      genre: 'Sci-Fi, Adventure',
-      duration: '2h 46min',
-      showtimes: ['10:00', '13:00', '16:00', '19:00'],
-    ),
-  ];
+  @override
+  State<MovieListScreen> createState() => _MovieListScreenState();
+}
+
+class _MovieListScreenState extends State<MovieListScreen> {
+  String _searchQuery = '';
+  String _selectedGenre = 'Semua';
+  List<Movie> _filteredMovies = movies;
+
+  @override
+  void initState() {
+    super.initState();
+    _filterMovies();
+  }
+
+  void _filterMovies() {
+    setState(() {
+      _filteredMovies = movies.where((movie) {
+        final matchesSearch = movie.title
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()) ||
+            movie.genre.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesGenre =
+            _selectedGenre == 'Semua' || movie.genre == _selectedGenre;
+        return matchesSearch && matchesGenre;
+      }).toList();
+    });
+  }
+
+  void _logout() {
+    currentUser = null;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (Route<dynamic> route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final genres = ['Semua', ...movies.map((m) => m.genre).toSet().toList()];
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bioskopku - Film Tayang'),
+        title: const Text('Bioskopku'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const UserListScreen()),
-              );
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'profile') {
+                _showProfileDialog();
+              } else if (value == 'history') {
+                _showBookingHistory();
+              } else if (value == 'logout') {
+                _logout();
+              }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    (Route<dynamic> route) => false,
-              );
-            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: const [
+                    Icon(Icons.person),
+                    SizedBox(width: 8),
+                    Text('Profil'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'history',
+                child: Row(
+                  children: const [
+                    Icon(Icons.history),
+                    SizedBox(width: 8),
+                    Text('Riwayat'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: const [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('Keluar'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: movies.length,
-        itemBuilder: (ctx, index) {
-          final movie = movies[index];
-          return Card(
-            elevation: 6,
-            margin: const EdgeInsets.only(bottom: 20.0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => MovieDetailScreen(movie: movie),
+      body: Column(
+        children: [
+          // Search and Filter
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey[50],
+            child: Column(
+              children: [
+                // Search Bar
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Cari film atau genre...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
+                  onChanged: (value) {
+                    _searchQuery = value;
+                    _filterMovies();
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Genre Filter
+                SizedBox(
+                  height: 40,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: genres.length,
+                    itemBuilder: (context, index) {
+                      final genre = genres[index];
+                      final isSelected = genre == _selectedGenre;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(genre),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedGenre = genre;
+                            });
+                            _filterMovies();
+                          },
+                          backgroundColor: Colors.white,
+                          selectedColor: Colors.blue[100],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Movies Grid
+          Expanded(
+            child: _filteredMovies.isEmpty
+                ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.movie_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Tidak ada film yang ditemukan',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Coba ubah kata kunci pencarian atau filter',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.6,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: _filteredMovies.length,
+              itemBuilder: (context, index) {
+                final movie = _filteredMovies[index];
+                return MovieCard(
+                  movie: movie,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            MovieDetailScreen(movie: movie),
+                      ),
+                    );
+                  },
                 );
               },
-              borderRadius: BorderRadius.circular(15),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Profil Pengguna'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Nama: ${currentUser?.name}'),
+            const SizedBox(height: 8),
+            Text('Email: ${currentUser?.email}'),
+            const SizedBox(height: 8),
+            Text('Telepon: ${currentUser?.phone}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBookingHistory() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Riwayat Pemesanan'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: bookingHistory.isEmpty
+              ? const Center(
+            child: Text('Belum ada riwayat pemesanan'),
+          )
+              : ListView.builder(
+            itemCount: bookingHistory.length,
+            itemBuilder: (context, index) {
+              final booking = bookingHistory[index];
+              return Card(
+                child: ListTile(
+                  title: Text(booking.movie.title),
+                  subtitle: Text(
+                    '${booking.date} • ${booking.showtime}\n'
+                        'ID: ${booking.bookingId}',
+                  ),
+                  trailing: Text(
+                    'Rp ${booking.totalPrice.toString().replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                          (Match m) => '${m[1]}.',
+                    )}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Movie Card Widget
+class MovieCard extends StatelessWidget {
+  final Movie movie;
+  final VoidCallback onTap;
+
+  const MovieCard({
+    super.key,
+    required this.movie,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Poster
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                ),
+                child: Stack(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10.0),
-                      child: Image.network(
-                        movie.posterUrl,
-                        width: 120,
-                        height: 180,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 120,
-                            height: 180,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.movie, size: 60, color: Colors.grey),
-                          );
-                        },
+                    Center(
+                      child: Icon(
+                        Icons.movie,
+                        size: 48,
+                        color: Colors.grey[600],
                       ),
                     ),
-                    const SizedBox(width: 18.0),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            movie.title,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          movie.ageRating,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 10.0),
-                          Text(
-                            '${movie.genre} | ${movie.duration}',
-                            style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                          ),
-                          const SizedBox(height: 8.0),
-                          const Text(
-                            'Jam Tayang:',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4.0),
-                          Wrap(
-                            spacing: 8.0,
-                            runSpacing: 4.0,
-                            children: movie.showtimes
-                                .map((time) => Chip(
-                              label: Text(time),
-                              backgroundColor: Colors.blueGrey[100],
-                              labelStyle: const TextStyle(fontSize: 12),
-                            ))
-                                .toList(),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-          );
-        },
+
+            // Movie Info
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      movie.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          movie.duration,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.star, size: 12, color: Colors.amber),
+                        const SizedBox(width: 2),
+                        Text(
+                          movie.rating.toString(),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        movie.genre,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Rp ${movie.price.toString().replaceAllMapped(
+                            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                (Match m) => '${m[1]}.',
+                          )}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${movie.showtimes.length} jadwal',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Screen 2: MovieDetailScreen
+// 3. Movie Detail Screen
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
 
@@ -422,178 +1040,481 @@ class MovieDetailScreen extends StatefulWidget {
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
   String? _selectedShowtime;
+  String? _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default date to today
+    _selectedDate = DateTime.now().toIso8601String().split('T')[0];
+  }
+
+  List<Map<String, String>> _getNextDays() {
+    final days = <Map<String, String>>[];
+    for (int i = 0; i < 7; i++) {
+      final date = DateTime.now().add(Duration(days: i));
+      days.add({
+        'date': date.toIso8601String().split('T')[0],
+        'display': _formatDate(date),
+      });
+    }
+    return days;
+  }
+
+  String _formatDate(DateTime date) {
+    final weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${weekdays[date.weekday - 1]}\n${date.day} ${months[date.month - 1]}';
+  }
+
+  void _proceedToSeatSelection() {
+    if (_selectedShowtime == null || _selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan pilih tanggal dan jam tayang terlebih dahulu'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    currentBooking = BookingData(
+      movie: widget.movie,
+      showtime: _selectedShowtime!,
+      date: _selectedDate!,
+      selectedSeats: [],
+      totalPrice: 0,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SeatSelectionScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final availableDates = _getNextDays();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.movie.title),
+        title: const Text('Detail Film'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15.0),
-                child: Image.network(
-                  widget.movie.posterUrl,
-                  height: 350,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 350,
-                      width: 250,
+            // Movie Header
+            Container(
+              height: 300,
+              child: Row(
+                children: [
+                  // Poster
+                  Container(
+                    width: 200,
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
                       color: Colors.grey[300],
-                      child: const Icon(Icons.movie, size: 100, color: Colors.grey),
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 30.0),
-            Text(
-              widget.movie.title,
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10.0),
-            Text(
-              '${widget.movie.genre} | ${widget.movie.duration}',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            const Text(
-              'Sinopsis:',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10.0),
-            Text(
-              widget.movie.description,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.justify,
-            ),
-            const SizedBox(height: 30.0),
-            const Text(
-              'Pilih Jam Tayang:',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 15.0),
-            Wrap(
-              spacing: 12.0,
-              runSpacing: 12.0,
-              children: widget.movie.showtimes.map((time) {
-                return ChoiceChip(
-                  label: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                    child: Text(time),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Icon(
+                            Icons.movie,
+                            size: 64,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              widget.movie.ageRating,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  selected: _selectedShowtime == time,
-                  selectedColor: Theme.of(context).primaryColor,
-                  labelStyle: TextStyle(
-                    color: _selectedShowtime == time ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedShowtime = selected ? time : null;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 40.0),
-            Center(
-              child: ElevatedButton(
-                onPressed: _selectedShowtime == null
-                    ? null
-                    : () async {
-                  // Pass globalSeats to SeatSelectionScreen
-                  final updatedSeats = await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => SeatSelectionScreen(
-                        movie: widget.movie,
-                        showtime: _selectedShowtime!,
-                        initialSeats: globalSeats, // Pass current global seats
+
+                  // Movie Info
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.movie.title,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              widget.movie.genre,
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time, size: 16),
+                              const SizedBox(width: 4),
+                              Text(widget.movie.duration),
+                              const SizedBox(width: 16),
+                              const Icon(Icons.star, size: 16, color: Colors.amber),
+                              const SizedBox(width: 4),
+                              Text('${widget.movie.rating}/10'),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.location_on, size: 16),
+                              const SizedBox(width: 4),
+                              Text(widget.movie.theater),
+                            ],
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Rp ${widget.movie.price.toString().replaceAllMapped(
+                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                  (Match m) => '${m[1]}.',
+                            )}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-
-                  // If updatedSeats are returned (meaning a booking was made),
-                  // update the globalSeats.
-                  if (updatedSeats != null && updatedSeats is List<Seat>) {
-                    setState(() {
-                      // This part is crucial: we update the global state
-                      // that the SeatSelectionScreen and future instances
-                      // of it will use.
-                      globalSeats = updatedSeats;
-                      _selectedShowtime = null; // Reset selected showtime after booking
-                    });
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Pilih Kursi',
-                  style: TextStyle(fontSize: 20),
+                ],
+              ),
+            ),
+
+            // Synopsis
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Sinopsis',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.movie.description,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.justify,
+                  ),
+                ],
+              ),
+            ),
+
+            // Movie Info
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Informasi Film',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInfoRow('Sutradara', widget.movie.director),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Pemeran', widget.movie.cast.join(', ')),
+                ],
+              ),
+            ),
+
+            // Date Selection
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pilih Tanggal',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: availableDates.length,
+                      itemBuilder: (context, index) {
+                        final day = availableDates[index];
+                        final isSelected = _selectedDate == day['date'];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = day['date'];
+                              });
+                            },
+                            child: Container(
+                              width: 60,
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.blue : Colors.white,
+                                border: Border.all(
+                                  color: isSelected ? Colors.blue : Colors.grey,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  day['display']!,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Showtime Selection
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pilih Jam Tayang',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (_selectedDate != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tanggal: ${_formatSelectedDate()}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: widget.movie.showtimes.map((time) {
+                      final isSelected = _selectedShowtime == time;
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedShowtime = time;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.blue : Colors.white,
+                            border: Border.all(
+                              color: isSelected ? Colors.blue : Colors.grey,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            time,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+
+            // Book Button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _proceedToSeatSelection,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.event_seat),
+                      SizedBox(width: 8),
+                      Text(
+                        'Pilih Kursi',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 20.0),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(value),
+        ),
+      ],
+    );
+  }
+
+  String _formatSelectedDate() {
+    if (_selectedDate == null) return '';
+    final date = DateTime.parse(_selectedDate!);
+    final weekdays = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
+  }
 }
 
-// Screen 3: SeatSelectionScreen
+// 4. Seat Selection Screen
 class SeatSelectionScreen extends StatefulWidget {
-  final Movie movie;
-  final String showtime;
-  final List<Seat> initialSeats; // New parameter to receive global seats
-
-  const SeatSelectionScreen({
-    super.key,
-    required this.movie,
-    required this.showtime,
-    required this.initialSeats, // Require initial seats
-  });
+  const SeatSelectionScreen({super.key});
 
   @override
   State<SeatSelectionScreen> createState() => _SeatSelectionScreenState();
 }
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
-  // Seats for this screen will be a copy of the initialSeats to allow local modification
   List<Seat> seats = [];
 
   @override
   void initState() {
     super.initState();
-    // Deep copy the initial seats to allow local state changes
-    seats = widget.initialSeats.map((seat) => seat.copyWith()).toList();
+    _initializeSeats();
   }
 
-  void _toggleSeatStatus(Seat seat) {
+  void _initializeSeats() {
+    final rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    final seatsPerRow = 10;
+
+    for (final row in rows) {
+      for (int i = 1; i <= seatsPerRow; i++) {
+        final seatId = '$row$i';
+        var status = SeatStatus.available;
+        var price = currentBooking!.movie.price;
+        var type = 'Regular';
+
+        // Premium seats (front rows) cost more
+        if (['A', 'B', 'C'].contains(row)) {
+          price += 10000;
+          type = 'Premium';
+        }
+
+        // Simulate some occupied seats
+        if ((row == 'C' && [5, 6].contains(i)) ||
+            (row == 'D' && [3, 4, 7, 8].contains(i)) ||
+            (row == 'F' && [8, 9].contains(i))) {
+          status = SeatStatus.occupied;
+        }
+
+        seats.add(Seat(
+          id: seatId,
+          row: row,
+          number: i,
+          status: status,
+          price: price,
+          type: type,
+        ));
+      }
+    }
+  }
+
+  void _toggleSeat(String seatId) {
     setState(() {
+      final seat = seats.firstWhere((s) => s.id == seatId);
       if (seat.status == SeatStatus.available) {
         seat.status = SeatStatus.selected;
       } else if (seat.status == SeatStatus.selected) {
@@ -605,393 +1526,1208 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   List<Seat> get _selectedSeats =>
       seats.where((seat) => seat.status == SeatStatus.selected).toList();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Pilih Kursi - ${widget.movie.title}'),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                const Text(
-                  'Layar Bioskop',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(top: 15, bottom: 20),
-                  height: 25,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      'LAYAR',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 10, // cols is now hardcoded for GridView.builder
-                  childAspectRatio: 0.9,
-                  crossAxisSpacing: 6.0,
-                  mainAxisSpacing: 6.0,
-                ),
-                itemCount: seats.length,
-                itemBuilder: (ctx, index) {
-                  final seat = seats[index];
-                  return _SeatWidgetInternal(
-                    seat: seat,
-                    onTap: () => _toggleSeatStatus(seat),
-                  );
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildSeatLegend(SeatStatus.available, 'Tersedia'),
-                    _buildSeatLegend(SeatStatus.selected, 'Terpilih'),
-                    _buildSeatLegend(SeatStatus.occupied, 'Terisi'),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: _selectedSeats.isEmpty
-                      ? null
-                      : () async {
-                    // Pass selected seats and movie details to BookingSummaryScreen
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => BookingSummaryScreen(
-                          movie: widget.movie,
-                          showtime: widget.showtime,
-                          selectedSeats: _selectedSeats,
-                          allSeats: seats, // Pass all seats to update in summary
-                        ),
-                      ),
-                    );
+  int get _totalPrice =>
+      _selectedSeats.fold(0, (sum, seat) => sum + seat.price);
 
-                    // If result is true, it means booking was confirmed
-                    if (result == true) {
-                      // Pop this screen and return the updated globalSeats to MovieDetailScreen
-                      Navigator.of(context).pop(seats);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: Text(
-                    'Pesan ${_selectedSeats.length} Kursi',
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  void _proceedToPayment() {
+    if (_selectedSeats.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan pilih minimal satu kursi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    currentBooking = currentBooking!.copyWith(
+      selectedSeats: _selectedSeats,
+      totalPrice: _totalPrice,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PaymentScreen(),
       ),
     );
   }
 
-  Widget _buildSeatLegend(SeatStatus status, String label) {
-    Color color;
+  Color _getSeatColor(SeatStatus status) {
     switch (status) {
-      case SeatStatus.available:
-        color = Colors.grey[300]!;
-        break;
-      case SeatStatus.selected:
-        color = Colors.blue;
-        break;
-      case SeatStatus.occupied:
-        color = Colors.red;
-        break;
-    }
-    return Row(
-      children: [
-        Container(
-          width: 25,
-          height: 25,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(label, style: const TextStyle(fontSize: 15)),
-      ],
-    );
-  }
-}
-
-// Screen 4: BookingSummaryScreen
-class BookingSummaryScreen extends StatelessWidget {
-  final Movie movie;
-  final String showtime;
-  final List<Seat> selectedSeats;
-  final List<Seat> allSeats; // New: Receive all seats to update their status
-
-  const BookingSummaryScreen({
-    super.key,
-    required this.movie,
-    required this.showtime,
-    required this.selectedSeats,
-    required this.allSeats, // Require all seats
-  });
-
-  String _getSeatsString() {
-    return selectedSeats.map((s) => '${s.row}${s.number}').join(', ');
-  }
-
-  double _calculateTotalPrice() {
-    const double pricePerSeat = 35000.0; // Assume price per seat in IDR
-    return selectedSeats.length * pricePerSeat;
-  }
-
-  // Function to update the status of selected seats to occupied
-  void _markSeatsAsOccupied() {
-    for (var selectedSeat in selectedSeats) {
-      // Find the corresponding seat in the full list and update its status
-      final seatToUpdate = allSeats.firstWhere((s) => s.id == selectedSeat.id);
-      seatToUpdate.status = SeatStatus.occupied;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ringkasan Pemesanan'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Film: ${movie.title}',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              'Jam Tayang: $showtime',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              'Kursi Dipilih: ${_getSeatsString()}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              'Jumlah Tiket: ${selectedSeats.length}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const Divider(height: 40, thickness: 1.5, color: Colors.grey),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Pembayaran:',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Rp ${_calculateTotalPrice().toStringAsFixed(0)}',
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  _showConfirmationDialog(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 60, vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Konfirmasi Pembayaran',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Pemesanan Berhasil! 🎉'),
-        content: Text(
-            'Tiket Anda untuk film ${movie.title} pada jam $showtime dengan kursi ${_getSeatsString()} telah berhasil dipesan.\n\nTerima kasih telah menggunakan Bioskopku!'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              // Mark seats as occupied globally before navigating back
-              _markSeatsAsOccupied();
-              Navigator.of(ctx).pop(); // Pop the dialog
-              // Pop the SeatSelectionScreen and indicate successful booking
-              Navigator.of(context).pop(true);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Screen 5: UserListScreen
-class UserListScreen extends StatelessWidget {
-  const UserListScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Daftar Pengguna'),
-      ),
-      body: registeredUsers.isEmpty
-          ? const Center(
-        child: Text(
-          'Belum ada pengguna terdaftar.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-      )
-          : ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: registeredUsers.length,
-        itemBuilder: (ctx, index) {
-          final user = registeredUsers[index];
-          return Card(
-            elevation: 4,
-            margin: const EdgeInsets.only(bottom: 12.0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            child: ListTile(
-              leading: const Icon(Icons.person_outline, color: Colors.blueGrey),
-              title: Text(
-                user.username,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              ),
-              subtitle: Text('Password: ${user.password} (Demo)'),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Detail pengguna: ${user.username}')),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// --- WIDGETS ---
-
-// Widget Kursi Individual (internal)
-class _SeatWidgetInternal extends StatelessWidget {
-  final Seat seat;
-  final VoidCallback onTap;
-
-  const _SeatWidgetInternal({
-    required this.seat,
-    required this.onTap,
-  });
-
-  Color _getSeatColor() {
-    switch (seat.status) {
       case SeatStatus.available:
         return Colors.grey[300]!;
       case SeatStatus.selected:
-        return Colors.blue[600]!;
+        return Colors.blue;
       case SeatStatus.occupied:
-        return Colors.red[400]!;
+        return Colors.red;
     }
-  }
-
-  Color _getTextColor() {
-    return seat.status == SeatStatus.selected ? Colors.white : Colors.black;
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: seat.status == SeatStatus.occupied ? null : onTap,
-      child: Container(
-        margin: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: _getSeatColor(),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[500]!),
-          boxShadow: seat.status == SeatStatus.selected
-              ? [
-            BoxShadow(
-              color: Colors.blue.withOpacity(0.5),
-              blurRadius: 5,
-              spreadRadius: 2,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pilih Kursi'),
+      ),
+      body: Column(
+        children: [
+          // Movie Info
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey[50],
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentBooking!.movie.title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${_formatDate()} • ${currentBooking!.showtime} • ${currentBooking!.movie.theater}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    currentBooking!.movie.genre,
+                    style: TextStyle(
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            '${seat.row}${seat.number}',
-            style: TextStyle(
-              color: _getTextColor(),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          ),
+
+          // Screen
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.tv, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text(
+                  'LAYAR',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Seats
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+                    .map((row) => _buildSeatRow(row))
+                    .toList(),
+              ),
+            ),
+          ),
+
+          // Legend
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildLegendItem(Colors.grey[300]!, 'Tersedia'),
+                _buildLegendItem(Colors.blue, 'Terpilih'),
+                _buildLegendItem(Colors.red, 'Terisi'),
+              ],
+            ),
+          ),
+
+          // Summary and Continue Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                if (_selectedSeats.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Kursi: ${_selectedSeats.map((s) => s.id).join(', ')}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Rp ${_totalPrice.toString().replaceAllMapped(
+                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                              (Match m) => '${m[1]}.',
+                        )}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _selectedSeats.isEmpty ? null : _proceedToPayment,
+                    child: Text(
+                      _selectedSeats.isEmpty
+                          ? 'Pilih Kursi'
+                          : 'Lanjut ke Pembayaran (${_selectedSeats.length} kursi)',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeatRow(String row) {
+    final rowSeats = seats.where((seat) => seat.row == row).toList();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20,
+            child: Text(
+              row,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 8),
+          ...rowSeats.map((seat) => _buildSeatWidget(seat)),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 20,
+            child: Text(
+              row,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeatWidget(Seat seat) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        onTap: seat.status == SeatStatus.occupied
+            ? null
+            : () => _toggleSeat(seat.id),
+        child: Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _getSeatColor(seat.status),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: seat.status == SeatStatus.selected
+                  ? Colors.blue[700]!
+                  : Colors.grey,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              seat.number.toString(),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: seat.status == SeatStatus.selected ||
+                    seat.status == SeatStatus.occupied
+                    ? Colors.white
+                    : Colors.black,
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildLegendItem(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate() {
+    final date = DateTime.parse(currentBooking!.date);
+    final weekdays = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+  }
+}
+
+// 5. Payment Screen
+class PaymentScreen extends StatefulWidget {
+  const PaymentScreen({super.key});
+
+  @override
+  State<PaymentScreen> createState() => _PaymentScreenState();
+}
+
+class _PaymentScreenState extends State<PaymentScreen> {
+  PaymentMethod? _selectedPaymentMethod;
+  bool _isProcessing = false;
+  final _formKey = GlobalKey<FormState>();
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
+  final _cardNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  int get _totalWithFee =>
+      currentBooking!.totalPrice + (_selectedPaymentMethod?.fee ?? 0);
+
+  void _processPayment() async {
+    if (_selectedPaymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan pilih metode pembayaran'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate form based on payment method
+    if (_selectedPaymentMethod!.id == 'credit_card') {
+      if (!_formKey.currentState!.validate()) {
+        return;
+      }
+    } else if (['gopay', 'ovo', 'dana'].contains(_selectedPaymentMethod!.id)) {
+      if (_phoneController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Silakan masukkan nomor telepon'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Simulate payment processing
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Generate booking ID
+    final bookingId = 'BKG${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+
+    // Create final booking data
+    final finalBooking = currentBooking!.copyWith(
+      paymentMethod: _selectedPaymentMethod,
+      bookingId: bookingId,
+      paymentDate: DateTime.now(),
+      totalPrice: _totalWithFee,
+    );
+
+    // Add to booking history
+    bookingHistory.add(finalBooking);
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    // Navigate to success screen
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => BookingSuccessScreen(booking: finalBooking),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pembayaran'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order Summary
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Ringkasan Pesanan',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            currentBooking!.movie.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${_formatDate()} • ${currentBooking!.showtime} • ${currentBooking!.movie.theater}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Kursi: ${currentBooking!.selectedSeats.map((s) => s.id).join(', ')}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Tiket (${currentBooking!.selectedSeats.length}x)'),
+                              Text('Rp ${currentBooking!.totalPrice.toString().replaceAllMapped(
+                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                    (Match m) => '${m[1]}.',
+                              )}'),
+                            ],
+                          ),
+                          if (_selectedPaymentMethod?.fee != null && _selectedPaymentMethod!.fee > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Biaya Admin'),
+                                Text('Rp ${_selectedPaymentMethod!.fee.toString().replaceAllMapped(
+                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                      (Match m) => '${m[1]}.',
+                                )}'),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Rp ${_totalWithFee.toString().replaceAllMapped(
+                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                      (Match m) => '${m[1]}.',
+                                )}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment Methods
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Pilih Metode Pembayaran',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...paymentMethods.map((method) => _buildPaymentMethodTile(method)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment Form
+                  if (_selectedPaymentMethod != null) ...[
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Detail Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ..._buildPaymentForm(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // Payment Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.3),
+                  spreadRadius: 1,
+                  blurRadius: 5,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 16, color: Colors.orange),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'Selesaikan dalam 15 menit',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _isProcessing ? null : _processPayment,
+                    child: _isProcessing
+                        ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text('Memproses...'),
+                      ],
+                    )
+                        : Text(
+                      'Bayar Rp ${_totalWithFee.toString().replaceAllMapped(
+                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                            (Match m) => '${m[1]}.',
+                      )}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodTile(PaymentMethod method) {
+    final isSelected = _selectedPaymentMethod?.id == method.id;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedPaymentMethod = method;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? Colors.blue : Colors.grey[300]!,
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(8),
+            color: isSelected ? Colors.blue[50] : Colors.white,
+          ),
+          child: Row(
+            children: [
+              Radio<PaymentMethod>(
+                value: method,
+                groupValue: _selectedPaymentMethod,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPaymentMethod = value;
+                  });
+                },
+              ),
+              Icon(method.icon, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      method.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      method.description,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (method.fee > 0)
+                Text(
+                  '+Rp ${method.fee.toString().replaceAllMapped(
+                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                        (Match m) => '${m[1]}.',
+                  )}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPaymentForm() {
+    if (_selectedPaymentMethod == null) return [];
+
+    switch (_selectedPaymentMethod!.id) {
+      case 'credit_card':
+        return [
+          TextFormField(
+            controller: _cardNumberController,
+            decoration: const InputDecoration(
+              labelText: 'Nomor Kartu',
+              hintText: '1234 5678 9012 3456',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Nomor kartu tidak boleh kosong';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _expiryController,
+                  decoration: const InputDecoration(
+                    labelText: 'MM/YY',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Tanggal kadaluarsa tidak boleh kosong';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _cvvController,
+                  decoration: const InputDecoration(
+                    labelText: 'CVV',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'CVV tidak boleh kosong';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _cardNameController,
+            decoration: const InputDecoration(
+              labelText: 'Nama Pemegang Kartu',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Nama pemegang kartu tidak boleh kosong';
+              }
+              return null;
+            },
+          ),
+        ];
+
+      case 'gopay':
+      case 'ovo':
+      case 'dana':
+        return [
+          TextFormField(
+            controller: _phoneController,
+            decoration: const InputDecoration(
+              labelText: 'Nomor Telepon',
+              hintText: '08xxxxxxxxxx',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Anda akan diarahkan ke aplikasi ${_selectedPaymentMethod!.name} untuk menyelesaikan pembayaran.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.blue[700],
+              ),
+            ),
+          ),
+        ];
+
+      case 'bank_transfer':
+        return [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Setelah konfirmasi, Anda akan mendapatkan nomor rekening untuk transfer. Pembayaran harus diselesaikan dalam 24 jam.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange[700],
+              ),
+            ),
+          ),
+        ];
+
+      default:
+        return [];
+    }
+  }
+
+  String _formatDate() {
+    final date = DateTime.parse(currentBooking!.date);
+    final weekdays = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+  }
+
+  @override
+  void dispose() {
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
+    _cardNameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+}
+
+// 6. Booking Success Screen
+class BookingSuccessScreen extends StatelessWidget {
+  final BookingData booking;
+
+  const BookingSuccessScreen({super.key, required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF4CAF50),
+              Color(0xFF2E7D32),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Success Header
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_circle,
+                          size: 60,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Pembayaran Berhasil!',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Tiket Anda telah berhasil dipesan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Ticket
+              Expanded(
+                flex: 3,
+                child: Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 2,
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Ticket Header
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.blue, Colors.purple],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      booking.movie.title,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      booking.movie.genre,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  booking.movie.ageRating,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Booking Details
+                        _buildDetailRow('ID Pemesanan', booking.bookingId!),
+                        _buildDetailRow('Tanggal', _formatDate()),
+                        _buildDetailRow('Jam Tayang', booking.showtime),
+                        _buildDetailRow('Studio', booking.movie.theater),
+                        _buildDetailRow(
+                          'Kursi',
+                          booking.selectedSeats.map((s) => s.id).join(', '),
+                        ),
+                        _buildDetailRow('Metode Pembayaran', booking.paymentMethod!.name),
+                        const SizedBox(height: 12),
+                        const Divider(),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Total Pembayaran',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Rp ${booking.totalPrice.toString().replaceAllMapped(
+                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                    (Match m) => '${m[1]}.',
+                              )}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // QR Code Placeholder
+                        Center(
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.qr_code,
+                                  size: 48,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'QR Code',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Tunjukkan QR code ini saat masuk bioskop',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Important Notes
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.yellow[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.yellow[300]!),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Informasi Penting:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.yellow[800],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '• Harap datang 30 menit sebelum jam tayang\n'
+                                    '• Bawa identitas diri yang valid\n'
+                                    '• Tiket tidak dapat dikembalikan atau ditukar\n'
+                                    '• Simpan tiket ini hingga selesai menonton',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.yellow[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Action Buttons
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Fitur download akan segera tersedia!'),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.download),
+                            label: const Text('Unduh'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Fitur share akan segera tersedia!'),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.share),
+                            label: const Text('Bagikan'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (context) => const MovieListScreen(),
+                            ),
+                                (Route<dynamic> route) => false,
+                          );
+                        },
+                        icon: const Icon(Icons.home),
+                        label: const Text('Kembali ke Beranda'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate() {
+    final date = DateTime.parse(booking.date);
+    final weekdays = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }
