@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+//komenan
 void main() {
   runApp(BioskopkuApp());
 }
@@ -581,7 +581,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : const Text('Masuk', style: TextStyle(fontSize: 16)),
                           ),
                         ),
-                        
+
                         // Button Coba Demo
                         const SizedBox(height: 16),
                         SizedBox(
