@@ -49,7 +49,7 @@ class Seat {
 
 class User {
   final String username;
-  final String password; // In a real app, never store plain passwords!
+  final String password; // In a real app,pp never store plain passwords!
 
   const User({required this.username, required this.password});
 }
