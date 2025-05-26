@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-//komenan
+// 123
 void main() {
   runApp(BioskopkuApp());
 }
