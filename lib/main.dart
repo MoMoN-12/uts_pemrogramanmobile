@@ -347,7 +347,7 @@ class BioskopkuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bioskopku',
+      title: 'BIOSKOPKU',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -538,7 +538,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: const Icon(Icons.movie_filter, size: 40, color: Colors.white),
                         ),
                         const SizedBox(height: 24),
-                        const Text('Bioskopku', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
+                        const Text('BIOSKOPKU', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
                         const SizedBox(height: 8),
                         const Text(
                           'Masuk untuk memesan tiket film favorit Anda',
@@ -659,7 +659,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bioskopku'),
+        title: const Text('BIOSKOPKU'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
