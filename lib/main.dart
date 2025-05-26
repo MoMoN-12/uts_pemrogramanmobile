@@ -224,7 +224,7 @@ List<User> registeredUsers = [
 List<Movie> movies = [
   const Movie(
     id: 'm1',
-    title: 'Avengers: Endgame',
+    title: 'Avengers: Endgame bro fgdtrtryrty',
     posterUrl: 'https://via.placeholder.com/300x400/4A90E2/FFFFFF?text=Avengers',
     description: 'Adrift in space with no food or water, Tony Stark sends a message to Pepper Potts as his oxygen supply starts to dwindle. Meanwhile, the remaining Avengers must figure out a way to bring back their vanquished allies for an epic showdown with Thanos.',
     genre: 'Action',
