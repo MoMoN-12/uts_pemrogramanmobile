@@ -133,6 +133,69 @@ class BookingData {
   }
 }
 
+// --- SEAT BOOKING SYSTEM ---
+class SeatBookingSystem {
+  // Map untuk menyimpan kursi yang sudah dipesan
+  // Key: "movieId_date_showtime_seatId"
+  // Value: true (sudah dipesan)
+  static Map<String, bool> bookedSeats = {};
+
+  // Fungsi untuk membuat key unik untuk setiap kursi
+  static String _createSeatKey(String movieId, String date, String showtime, String seatId) {
+    return "${movieId}_${date}_${showtime}_$seatId";
+  }
+
+  // Fungsi untuk mengecek apakah kursi sudah dipesan
+  static bool isSeatBooked(String movieId, String date, String showtime, String seatId) {
+    final key = _createSeatKey(movieId, date, showtime, seatId);
+    return bookedSeats[key] ?? false;
+  }
+
+  // Fungsi untuk memesan kursi
+  static void bookSeats(String movieId, String date, String showtime, List<String> seatIds) {
+    for (final seatId in seatIds) {
+      final key = _createSeatKey(movieId, date, showtime, seatId);
+      bookedSeats[key] = true;
+    }
+  }
+
+  // Fungsi untuk membatalkan pemesanan kursi (jika diperlukan)
+  static void cancelSeatBooking(String movieId, String date, String showtime, List<String> seatIds) {
+    for (final seatId in seatIds) {
+      final key = _createSeatKey(movieId, date, showtime, seatId);
+      bookedSeats.remove(key);
+    }
+  }
+
+  // Fungsi untuk mendapatkan semua kursi yang dipesan untuk sesi tertentu
+  static List<String> getBookedSeatsForSession(String movieId, String date, String showtime) {
+    final bookedSeatIds = <String>[];
+    final sessionPrefix = "${movieId}_${date}_$showtime";
+
+    bookedSeats.forEach((key, value) {
+      if (key.startsWith(sessionPrefix) && value) {
+        final seatId = key.split('_').last;
+        bookedSeatIds.add(seatId);
+      }
+    });
+
+    return bookedSeatIds;
+  }
+
+  // Fungsi untuk mendapatkan statistik kursi
+  static Map<String, int> getSeatStatistics(String movieId, String date, String showtime) {
+    final bookedSeatIds = getBookedSeatsForSession(movieId, date, showtime);
+    final totalSeats = 80; // 8 rows x 10 seats
+    final availableSeats = totalSeats - bookedSeatIds.length;
+
+    return {
+      'total': totalSeats,
+      'booked': bookedSeatIds.length,
+      'available': availableSeats,
+    };
+  }
+}
+
 // --- GLOBAL DATA ---
 List<User> registeredUsers = [
   const User(
@@ -333,6 +396,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Simulasi beberapa kursi sudah dipesan untuk demo
+    _initializeDemoBookedSeats();
+  }
+
+  void _initializeDemoBookedSeats() {
+    // Simulasi kursi yang sudah dipesan untuk berbagai sesi
+    SeatBookingSystem.bookSeats('m1', DateTime.now().toIso8601String().split('T')[0], '12:00', ['A5', 'A6', 'B3', 'B4']);
+    SeatBookingSystem.bookSeats('m1', DateTime.now().toIso8601String().split('T')[0], '14:30', ['C7', 'C8', 'D5', 'D6']);
+    SeatBookingSystem.bookSeats('m2', DateTime.now().toIso8601String().split('T')[0], '11:00', ['E1', 'E2', 'F9', 'F10']);
+    SeatBookingSystem.bookSeats('m3', DateTime.now().toIso8601String().split('T')[0], '10:00', ['G3', 'G4', 'H7', 'H8']);
+  }
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
@@ -636,6 +714,8 @@ class _MovieListScreenState extends State<MovieListScreen> {
                 _showProfileDialog();
               } else if (value == 'history') {
                 _showBookingHistory();
+              } else if (value == 'seat_status') {
+                _showSeatStatusDialog();
               } else if (value == 'logout') {
                 _logout();
               }
@@ -658,6 +738,16 @@ class _MovieListScreenState extends State<MovieListScreen> {
                     Icon(Icons.history),
                     SizedBox(width: 8),
                     Text('Riwayat'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'seat_status',
+                child: Row(
+                  children: const [
+                    Icon(Icons.event_seat),
+                    SizedBox(width: 8),
+                    Text('Status Kursi'),
                   ],
                 ),
               ),
@@ -841,7 +931,8 @@ class _MovieListScreenState extends State<MovieListScreen> {
                   title: Text(booking.movie.title),
                   subtitle: Text(
                     '${booking.date} • ${booking.showtime}\n'
-                        'ID: ${booking.bookingId}',
+                        'ID: ${booking.bookingId}\n'
+                        'Kursi: ${booking.selectedSeats.map((s) => s.id).join(', ')}',
                   ),
                   trailing: Text(
                     'Rp ${booking.totalPrice.toString().replaceAllMapped(
@@ -853,6 +944,75 @@ class _MovieListScreenState extends State<MovieListScreen> {
                       color: Colors.green,
                     ),
                   ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSeatStatusDialog() {
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Status Kursi Hari Ini'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView.builder(
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              final movie = movies[index];
+              return Card(
+                child: ExpansionTile(
+                  title: Text(movie.title),
+                  subtitle: Text(movie.theater),
+                  children: movie.showtimes.map((showtime) {
+                    final stats = SeatBookingSystem.getSeatStatistics(
+                        movie.id,
+                        today,
+                        showtime
+                    );
+                    final bookedSeats = SeatBookingSystem.getBookedSeatsForSession(
+                        movie.id,
+                        today,
+                        showtime
+                    );
+
+                    return ListTile(
+                      title: Text('Jam $showtime'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Tersedia: ${stats['available']} kursi'),
+                          Text('Terisi: ${stats['booked']} kursi'),
+                          if (bookedSeats.isNotEmpty)
+                            Text('Kursi terisi: ${bookedSeats.join(', ')}'),
+                        ],
+                      ),
+                      trailing: CircularProgressIndicator(
+                        value: stats['booked']! / stats['total']!,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          stats['booked']! > stats['total']! * 0.7
+                              ? Colors.red
+                              : stats['booked']! > stats['total']! * 0.4
+                              ? Colors.orange
+                              : Colors.green,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               );
             },
@@ -882,6 +1042,19 @@ class MovieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Hitung statistik kursi untuk hari ini
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    int totalBooked = 0;
+    int totalSeats = 0;
+
+    for (final showtime in movie.showtimes) {
+      final stats = SeatBookingSystem.getSeatStatistics(movie.id, today, showtime);
+      totalBooked += stats['booked']!;
+      totalSeats += stats['total']!;
+    }
+
+    final availabilityPercentage = totalSeats > 0 ? (totalSeats - totalBooked) / totalSeats : 1.0;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -925,6 +1098,44 @@ class MovieCard extends StatelessWidget {
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
+                        ),
+                      ),
+                    ),
+                    // Indikator ketersediaan kursi
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: availabilityPercentage > 0.7
+                              ? Colors.green
+                              : availabilityPercentage > 0.3
+                              ? Colors.orange
+                              : Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.event_seat,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              '${(availabilityPercentage * 100).round()}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1303,6 +1514,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             onTap: () {
                               setState(() {
                                 _selectedDate = day['date'];
+                                _selectedShowtime = null; // Reset showtime selection
                               });
                             },
                             child: Container(
@@ -1364,8 +1576,21 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     runSpacing: 8,
                     children: widget.movie.showtimes.map((time) {
                       final isSelected = _selectedShowtime == time;
+
+                      // Hitung statistik kursi untuk jam tayang ini
+                      final stats = _selectedDate != null
+                          ? SeatBookingSystem.getSeatStatistics(
+                          widget.movie.id,
+                          _selectedDate!,
+                          time
+                      )
+                          : {'available': 80, 'booked': 0, 'total': 80};
+
+                      final availableSeats = stats['available']!;
+                      final isFullyBooked = availableSeats == 0;
+
                       return InkWell(
-                        onTap: () {
+                        onTap: isFullyBooked ? null : () {
                           setState(() {
                             _selectedShowtime = time;
                           });
@@ -1376,18 +1601,49 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.blue : Colors.white,
+                            color: isFullyBooked
+                                ? Colors.grey[300]
+                                : isSelected
+                                ? Colors.blue
+                                : Colors.white,
                             border: Border.all(
-                              color: isSelected ? Colors.blue : Colors.grey,
+                              color: isFullyBooked
+                                  ? Colors.grey
+                                  : isSelected
+                                  ? Colors.blue
+                                  : Colors.grey,
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            time,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                time,
+                                style: TextStyle(
+                                  color: isFullyBooked
+                                      ? Colors.grey[600]
+                                      : isSelected
+                                      ? Colors.white
+                                      : Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                isFullyBooked
+                                    ? 'Penuh'
+                                    : '$availableSeats kursi',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isFullyBooked
+                                      ? Colors.grey[600]
+                                      : isSelected
+                                      ? Colors.white70
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -1480,6 +1736,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     final seatsPerRow = 10;
 
+    // Dapatkan kursi yang sudah dipesan untuk sesi ini
+    final bookedSeatIds = SeatBookingSystem.getBookedSeatsForSession(
+      currentBooking!.movie.id,
+      currentBooking!.date,
+      currentBooking!.showtime,
+    );
+
     for (final row in rows) {
       for (int i = 1; i <= seatsPerRow; i++) {
         final seatId = '$row$i';
@@ -1493,10 +1756,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           type = 'Premium';
         }
 
-        // Simulate some occupied seats
-        if ((row == 'C' && [5, 6].contains(i)) ||
-            (row == 'D' && [3, 4, 7, 8].contains(i)) ||
-            (row == 'F' && [8, 9].contains(i))) {
+        // Set status berdasarkan kursi yang sudah dipesan
+        if (bookedSeatIds.contains(seatId)) {
           status = SeatStatus.occupied;
         }
 
@@ -1565,9 +1826,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Hitung statistik kursi
+    final availableSeats = seats.where((s) => s.status == SeatStatus.available).length;
+    final occupiedSeats = seats.where((s) => s.status == SeatStatus.occupied).length;
+    final selectedSeats = seats.where((s) => s.status == SeatStatus.selected).length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pilih Kursi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              _showSeatInfo();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -1575,45 +1849,59 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.grey[50],
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        currentBooking!.movie.title,
-                        style: const TextStyle(
-                          fontSize: 18,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentBooking!.movie.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${_formatDate()} • ${currentBooking!.showtime} • ${currentBooking!.movie.theater}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        currentBooking!.movie.genre,
+                        style: TextStyle(
+                          color: Colors.blue[700],
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        '${_formatDate()} • ${currentBooking!.showtime} • ${currentBooking!.movie.theater}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    currentBooking!.movie.genre,
-                    style: TextStyle(
-                      color: Colors.blue[700],
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Statistik kursi
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('Tersedia', availableSeats, Colors.green),
+                    _buildStatItem('Terisi', occupiedSeats, Colors.red),
+                    _buildStatItem('Dipilih', selectedSeats, Colors.blue),
+                  ],
                 ),
               ],
             ),
@@ -1728,6 +2016,30 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
+  Widget _buildStatItem(String label, int count, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          count.toString(),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSeatRow(String row) {
     final rowSeats = seats.where((seat) => seat.row == row).toList();
     return Padding(
@@ -1817,6 +2129,84 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     );
   }
 
+  void _showSeatInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Informasi Kursi'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Jenis Kursi:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text('• Baris A-C: Premium (+Rp 10.000)'),
+            Text('• Baris D-H: Regular'),
+            const SizedBox(height: 12),
+            const Text(
+              'Status Kursi:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Tersedia untuk dipilih'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Kursi yang Anda pilih'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('Sudah dipesan orang lain'),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatDate() {
     final date = DateTime.parse(currentBooking!.date);
     final weekdays = [
@@ -1889,6 +2279,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Generate booking ID
     final bookingId = 'BKG${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
 
+    // Book the selected seats in the system
+    final seatIds = currentBooking!.selectedSeats.map((seat) => seat.id).toList();
+    SeatBookingSystem.bookSeats(
+      currentBooking!.movie.id,
+      currentBooking!.date,
+      currentBooking!.showtime,
+      seatIds,
+    );
+
     // Create final booking data
     final finalBooking = currentBooking!.copyWith(
       paymentMethod: _selectedPaymentMethod,
@@ -1903,6 +2302,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() {
       _isProcessing = false;
     });
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Kursi ${seatIds.join(', ')} berhasil dipesan!'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
 
     // Navigate to success screen
     Navigator.of(context).pushReplacement(
@@ -2416,6 +2824,25 @@ class BookingSuccessScreen extends StatelessWidget {
                           color: Colors.white70,
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Kursi ${booking.selectedSeats.map((s) => s.id).join(', ')} telah dikunci untuk Anda',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -2599,7 +3026,8 @@ class BookingSuccessScreen extends StatelessWidget {
                                 '• Harap datang 30 menit sebelum jam tayang\n'
                                     '• Bawa identitas diri yang valid\n'
                                     '• Tiket tidak dapat dikembalikan atau ditukar\n'
-                                    '• Simpan tiket ini hingga selesai menonton',
+                                    '• Simpan tiket ini hingga selesai menonton\n'
+                                    '• Kursi Anda telah dikunci dan tidak dapat dipilih orang lain',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.yellow[700],
