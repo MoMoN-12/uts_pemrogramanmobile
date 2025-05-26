@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// 123
+// kontol
 void main() {
   runApp(BioskopkuApp());
 }
