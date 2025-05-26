@@ -382,7 +382,7 @@ class BioskopkuApp extends StatelessWidget {
 
 // --- SCREENS ---
 
-// 1. Login Screen
+// LoginScreen
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -400,12 +400,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Simulasi beberapa kursi sudah dipesan untuk demo
     _initializeDemoBookedSeats();
   }
 
   void _initializeDemoBookedSeats() {
-    // Simulasi kursi yang sudah dipesan untuk berbagai sesi
     SeatBookingSystem.bookSeats('m1', DateTime.now().toIso8601String().split('T')[0], '12:00', ['A5', 'A6', 'B3', 'B4']);
     SeatBookingSystem.bookSeats('m1', DateTime.now().toIso8601String().split('T')[0], '14:30', ['C7', 'C8', 'D5', 'D6']);
     SeatBookingSystem.bookSeats('m2', DateTime.now().toIso8601String().split('T')[0], '11:00', ['E1', 'E2', 'F9', 'F10']);
@@ -418,7 +416,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = true;
       });
 
-      // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
 
       final username = _usernameController.text;
@@ -426,13 +423,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = registeredUsers.firstWhere(
             (u) => u.username == username && u.password == password,
-        orElse: () => const User(
-          username: '',
-          password: '',
-          name: '',
-          email: '',
-          phone: '',
-        ),
+        orElse: () => const User(username: '', password: '', name: '', email: '', phone: ''),
       );
 
       setState(() {
@@ -442,28 +433,79 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user.username.isNotEmpty) {
         currentUser = user;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Selamat datang, ${user.name}!'),
-            backgroundColor: Colors.green,
-          ),
+          SnackBar(content: Text('Selamat datang, ${user.name}!'), backgroundColor: Colors.green),
         );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MovieListScreen()),
-        );
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => const MovieListScreen()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Username atau password salah!'),
-            backgroundColor: Colors.red,
-          ),
+          const SnackBar(content: Text('Username atau password salah!'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  void _demoLogin() {
-    _usernameController.text = 'demo';
-    _passwordController.text = 'demo123';
+  void _showRegisterDialog() {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    final regUsernameController = TextEditingController();
+    final regPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Buat Akun Baru'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nama')),
+                TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
+                TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Nomor HP')),
+                TextField(controller: regUsernameController, decoration: const InputDecoration(labelText: 'Username')),
+                TextField(
+                  controller: regPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newUser = User(
+                  username: regUsernameController.text.trim(),
+                  password: regPasswordController.text.trim(),
+                  name: nameController.text.trim(),
+                  email: emailController.text.trim(),
+                  phone: phoneController.text.trim(),
+                );
+
+                if (registeredUsers.any((u) => u.username == newUser.username)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Username sudah digunakan'), backgroundColor: Colors.orange),
+                  );
+                } else {
+                  setState(() {
+                    registeredUsers.add(newUser);
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Akun berhasil dibuat!'), backgroundColor: Colors.green),
+                  );
+                }
+              },
+              child: const Text('Daftar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -474,10 +516,7 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF64B5F6),
-              Color(0xFF1976D2),
-            ],
+            colors: [Color(0xFF64B5F6), Color(0xFF1976D2)],
           ),
         ),
         child: SafeArea(
@@ -492,62 +531,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo
                         Container(
                           width: 80,
                           height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          child: const Icon(
-                            Icons.movie_filter,
-                            size: 40,
-                            color: Colors.white,
-                          ),
+                          decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(40)),
+                          child: const Icon(Icons.movie_filter, size: 40, color: Colors.white),
                         ),
                         const SizedBox(height: 24),
-
-                        // Title
-                        const Text(
-                          'Bioskopku',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
+                        const Text('Bioskopku', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
                         const SizedBox(height: 8),
                         const Text(
                           'Masuk untuk memesan tiket film favorit Anda',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 32),
-
-                        // Username Field
                         TextFormField(
                           controller: _usernameController,
                           decoration: InputDecoration(
                             labelText: 'Username',
                             prefixIcon: const Icon(Icons.person),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Username tidak boleh kosong';
-                            }
-                            return null;
-                          },
+                          validator: (value) => (value == null || value.isEmpty) ? 'Username tidak boleh kosong' : null,
                         ),
                         const SizedBox(height: 16),
-
-                        // Password Field
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -555,88 +563,31 @@ class _LoginScreenState extends State<LoginScreen> {
                             labelText: 'Password',
                             prefixIcon: const Icon(Icons.lock),
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Password tidak boleh kosong';
-                            }
-                            return null;
-                          },
+                          validator: (value) => (value == null || value.isEmpty) ? 'Password tidak boleh kosong' : null,
                         ),
                         const SizedBox(height: 24),
-
-                        // Login Button
                         SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _login,
                             child: _isLoading
-                                ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
-                                : const Text(
-                              'Masuk',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text('Masuk', style: TextStyle(fontSize: 16)),
                           ),
                         ),
                         const SizedBox(height: 16),
-
-                        // Demo Button
                         SizedBox(
                           width: double.infinity,
                           height: 48,
                           child: OutlinedButton(
-                            onPressed: _demoLogin,
-                            child: const Text(
-                              'Coba Demo',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Demo Accounts Info
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              const Text(
-                                'Akun Demo Tersedia:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'demo / demo123\nuser1 / password1\nadmin / admin123',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                            onPressed: _showRegisterDialog,
+                            child: const Text('Daftar Akun', style: TextStyle(fontSize: 16)),
                           ),
                         ),
                       ],
