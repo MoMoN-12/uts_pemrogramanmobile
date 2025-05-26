@@ -347,7 +347,7 @@ class BioskopkuApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BIOSKOPKU',
+      title: 'BIOSKOPKUuu',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
