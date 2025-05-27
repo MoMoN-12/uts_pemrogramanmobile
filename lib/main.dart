@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+//memasukkan teks bulan
+
 void main() {
   runApp(BioskopkuApp());
 }
